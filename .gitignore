@@ -14,4 +14,4 @@ modeltesting/
 .pvz
 pvz/
 .modeltestin
-model/
+*.h5
