@@ -11,6 +11,10 @@ from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramAPIError
 from PIL import Image
 import logging
+import cv2  # Для обработки изображения
+from PIL import Image, ImageOps
+import numpy as np
+import matplotlib.pyplot as plt
 
 # Инициализация логгера
 logging.basicConfig(level=logging.INFO)
@@ -46,25 +50,57 @@ async def predict_from_index(n: int):
         logger.error(f"Ошибка при предсказании: {e}")
         raise
 
-# Функция для предсказания цифры на изображении
+
+
+
 async def predict_from_image(image_data: bytes):
     try:
-        # Преобразуем байты изображения в объект Image
-        img = Image.open(io.BytesIO(image_data)).convert('L')  # Конвертируем в оттенки серого
-        img = img.resize((28, 28))  # Меняем размер до 28x28 пикселей (размер MNIST изображений)
-        
-        # Преобразуем изображение в массив numpy и нормализуем
-        img_array = np.array(img) / 255.0
-        img_array = np.expand_dims(img_array, axis=0)  # Добавляем размерность для батча
-        
-        # Прогнозируем цифру
-        res = model.predict(img_array)
+        # Шаг 1: Преобразуем байты изображения в OpenCV-формат
+        img = Image.open(io.BytesIO(image_data)).convert('L')  # Конвертация в оттенки серого
+        img = np.array(img)
+
+        # Шаг 2: Бинаризация (чтобы разделить цифру и фон)
+        _, binary_img = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY_INV)  # Инвертируем фон
+
+        # Шаг 3: Поиск контуров (чтобы найти область с цифрой)
+        contours, _ = cv2.findContours(binary_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            raise ValueError("Цифра не найдена на изображении.")
+
+        # Шаг 4: Выделение самого большого контура
+        largest_contour = max(contours, key=cv2.contourArea)
+        x, y, w, h = cv2.boundingRect(largest_contour)
+        digit = binary_img[y:y+h, x:x+w]  # Обрезаем область с цифрой
+
+        # Шаг 5: Масштабирование цифры до 20x20
+        digit = cv2.resize(digit, (20, 20), interpolation=cv2.INTER_AREA)
+
+        # Шаг 6: Добавление отступов для центровки (как в MNIST)
+        padded_digit = np.pad(digit, ((4, 4), (4, 4)), mode='constant', constant_values=0)
+
+        # Шаг 7: Преобразуем в формат, пригодный для модели
+        padded_digit = padded_digit / 255.0  # Нормализация
+        padded_digit = padded_digit.reshape(1, 28, 28, 1)  # Добавляем размерность
+
+        # Шаг 8: Отображение обработанного изображения (для отладки)
+        # plt.imshow(padded_digit.squeeze(), cmap='gray')
+        # plt.title("Обработанное изображение")
+        # plt.axis('off')
+        # plt.show()
+
+        # Шаг 9: Прогнозируем цифру с помощью модели
+        res = model.predict(padded_digit)
         predicted_digit = np.argmax(res)
-        
+
         return predicted_digit
     except Exception as e:
         logger.error(f"Ошибка при предсказании с изображения: {e}")
         raise
+
+
+
+
+
 
 # Обработчик команды /start
 @router.message(CommandStart())
