@@ -4,15 +4,13 @@ import matplotlib.pyplot as plt
 from tensorflow.keras.models import load_model
 from tensorflow.keras.datasets import mnist
 from aiogram import Router, F
-from aiogram.types import Message, FSInputFile, BufferedInputFile
-from aiogram.types import InputFile
+from aiogram.types import Message, FSInputFile
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.exceptions import TelegramAPIError
 from PIL import Image
 import logging
-import cv2  # Для обработки изображения
-from PIL import Image, ImageOps
+import cv2  
+from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 
