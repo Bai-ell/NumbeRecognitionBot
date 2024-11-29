@@ -1,11 +1,10 @@
-.env
-.venv
-.tgtest.json
 
-env/
+.venv
+
+
 venv/
 ENV/
-env.bak/
+
 venv.bak/
 
 .modeltesting
@@ -14,4 +13,4 @@ modeltesting/
 .pvz
 pvz/
 .modeltestin
-*.h5
+
